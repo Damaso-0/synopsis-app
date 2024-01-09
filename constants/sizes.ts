@@ -1,0 +1,7 @@
+export const SIZES = {
+    BORDER_RADIUS: 16,
+    PADDING: 20,
+    SPACE_SMALL: 8,
+    SPACE_MEDIUM: 16,
+    SPACE_LARGE: 24
+}
