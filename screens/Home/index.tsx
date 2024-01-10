@@ -1,4 +1,5 @@
 import {
+  Animated,
   Image,
   RefreshControl,
   ScrollView,
@@ -8,7 +9,7 @@ import {
 import { styles } from './styles'
 import { getPopularMovies } from '../../services/movie'
 import { getImageUrl } from '../../helpers/image'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Card from '../../components/Card'
 import { Title2 } from '../../components/Title'
 import SplashScreen from '../../components/SplashScreen'
@@ -19,10 +20,9 @@ import GenreButton from '../../components/GenreButton'
 import { LinearGradient } from 'expo-linear-gradient'
 import { COLORS } from '../../constants/colors'
 import Button from '../../components/Button'
+import HighlightCard from '../../components/HighlightCard'
 
 export default function Home({ navigation }: any) {
-  const [scrollY, setScrollY] = useState(0)
-
   const [contentLoaded, setContentLoaded] = useState(false)
 
   const [popularMovies, setPopularMovies] = useState<iMovie[]>([])
@@ -65,19 +65,20 @@ export default function Home({ navigation }: any) {
     }, 1000)
   }, [])
 
+  const scrollOffset = useRef(new Animated.Value(0)).current
+
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y
+    scrollOffset.setValue(offsetY)
+  }
+
   return (
     <>
       <SplashScreen contentLoaded={contentLoaded} />
 
       <ScrollView
+        onScroll={handleScroll}
         contentContainerStyle={styles.container}
-        onScroll={(event) => {
-          setScrollY(
-            event.nativeEvent.contentOffset.y > 300
-              ? 300
-              : event.nativeEvent.contentOffset.y
-          )
-        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -87,52 +88,53 @@ export default function Home({ navigation }: any) {
           />
         }>
         {/* ---------- Highlight movie ---------- */}
+
         {highlightMovie && (
-          <View style={styles.highlightContainer}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() =>
-                navigation.navigate('Movie', {
-                  id: highlightMovie?.id,
-                  data: highlightMovie,
-                  defaultGenres: genres,
-                })
-              }
-              style={{
-                overflow: 'hidden',
-                width: '100%',
-                height: 'auto',
-                aspectRatio: 1 / 1.5,
-                alignItems: 'center',
-              }}>
-              <Image
-                source={{
-                  uri: getImageUrl(highlightMovie?.poster_path, 'w1280'),
-                }}
-                style={{
-                  ...styles.highlightImage,
-                }}
-              />
-            </TouchableOpacity>
-            <View style={styles.highlightContent}>
-              <LinearGradient
-                colors={['rgba(0, 0, 0, 0)', COLORS.BACKGROUND]}
-                style={styles.linearGradient}>
-                <Button
-                  onPress={() =>
-                    navigation.navigate('Movie', {
-                      id: highlightMovie?.id,
-                      data: highlightMovie,
-                      defaultGenres: genres,
-                    })
-                  }>
-                  + Datails
-                </Button>
-                <Button border backgroundTransparent>
-                  Add to list
-                </Button>
-              </LinearGradient>
-            </View>
+          <HighlightCard
+            data={highlightMovie}
+            scrollOffset={scrollOffset}
+            navigation={navigation}
+            genres={genres}
+          />
+        )}
+
+        {/* ---------- Popular movies ---------- */}
+        {popularMovies.length > 0 && (
+          <View>
+            <Title2>Popular movies</Title2>
+            <ScrollView horizontal contentContainerStyle={styles.scroll}>
+              {popularMovies?.map((movie: any, index: number) => (
+                <Card
+                  key={movie?.id}
+                  title={movie?.title}
+                  id={movie?.id}
+                  image={movie?.poster_path}
+                  navigation={navigation}
+                  data={movie}
+                  defaultGenres={genres}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ---------- Genres ---------- */}
+        {genres && genres?.movie.length > 0 && (
+          <View>
+            <Title2>Genres</Title2>
+            <ScrollView horizontal contentContainerStyle={styles.scroll}>
+              {genres?.movie &&
+                genres?.movie?.map((genre: any, index: number) => (
+                  <GenreButton
+                    key={genre.id}
+                    text={genre?.name}
+                    id={genre?.id}
+                    navigation={navigation}
+                    data={genre}
+                    defaultGenres={genres}
+                  />
+                ))}
+            </ScrollView>
           </View>
         )}
 
